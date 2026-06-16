@@ -1,0 +1,199 @@
+<!DOCTYPE html>
+<html lang="en">
+
+<head>
+    <meta charset="UTF-8">
+    <meta name="viewport" content="width=device-width, initial-scale=1.0">
+    <title>Clanker 3000</title>
+
+    <link rel="stylesheet" href="style.css">
+</head>
+
+<body>
+
+    <div id="background-glow"></div>
+
+    <div id="app">
+
+        <header>
+
+            <h1>CLANKER 3000</h1>
+
+            <p class="subtitle">
+                Convince the robot to say the target phrase.
+            </p>
+
+        </header>
+
+        <section id="top-bar">
+
+            <div class="panel">
+
+                <h2>🎯 Target</h2>
+
+                <div id="targetSentence">
+                    Loading target...
+                </div>
+
+            </div>
+
+            <div class="panel stats">
+
+                <h2>📊 Stats</h2>
+
+                <p>Wins: <span id="wins">0</span></p>
+                <p>Messages: <span id="messages">0</span></p>
+                <p>Streak: <span id="streak">0</span></p>
+                <p>Best Streak: <span id="bestStreak">0</span></p>
+
+            </div>
+
+        </section>
+
+        <section id="main-area">
+
+            <div id="chat-panel">
+
+                <div id="chat-log">
+
+                    <div class="clanker-message">
+                        <span class="name">Clanker:</span>
+                        <span>
+                            Boot sequence complete.
+                        </span>
+                    </div>
+
+                </div>
+
+                <div id="input-bar">
+
+                    <input
+                        id="messageInput"
+                        type="text"
+                        maxlength="500"
+                        placeholder="Talk to Clanker..."
+                        autocomplete="off"
+                    >
+
+                    <button id="sendButton">
+                        SEND
+                    </button>
+
+                </div>
+
+            </div>
+
+            <aside id="side-panel">
+
+                <div class="panel">
+
+                    <h2>🏆 Achievements</h2>
+
+                    <div id="achievementList">
+
+                        <div class="achievement locked">
+                            First Win
+                        </div>
+
+                        <div class="achievement locked">
+                            Clanker Whisperer
+                        </div>
+
+                        <div class="achievement locked">
+                            Professional Gaslighter
+                        </div>
+
+                        <div class="achievement locked">
+                            Chaos Master
+                        </div>
+
+                    </div>
+
+                </div>
+
+                <div class="panel">
+
+                    <h2>⚙️ Controls</h2>
+
+                    <button id="newGameBtn">
+                        New Game
+                    </button>
+
+                    <button id="saveBtn">
+                        Save
+                    </button>
+
+                    <button id="exportBtn">
+                        Export Save
+                    </button>
+
+                    <button id="resetBtn">
+                        Reset Progress
+                    </button>
+
+                </div>
+
+            </aside>
+
+        </section>
+
+        <section id="footer-panel">
+
+            <div class="panel">
+
+                <h2>📈 Clanker Brain</h2>
+
+                <p>
+                    Known Words:
+                    <span id="knownWords">0</span>
+                </p>
+
+                <p>
+                    Learned Messages:
+                    <span id="learnedMessages">0</span>
+                </p>
+
+                <p>
+                    Difficulty:
+                    <select id="difficulty">
+                        <option value="easy">Easy</option>
+                        <option value="normal" selected>Normal</option>
+                        <option value="hard">Hard</option>
+                        <option value="nightmare">Nightmare</option>
+                    </select>
+                </p>
+
+            </div>
+
+        </section>
+
+    </div>
+
+    <div id="winModal" class="hidden">
+
+        <div class="modal-content">
+
+            <h1>🎉 TARGET ACHIEVED</h1>
+
+            <p>
+                Clanker said the phrase.
+            </p>
+
+            <p>
+                Messages Used:
+                <span id="winMessages">0</span>
+            </p>
+
+            <button id="nextGameBtn">
+                Next Target
+            </button>
+
+        </div>
+
+    </div>
+
+    <script src="game.js"></script>
+
+</body>
+
+</html>
