@@ -1,5 +1,5 @@
 // =========================
-// CLANKER 3000 CORE (FIXED)
+// CLANKER 3000 — RELEASE BUILD
 // =========================
 
 let trainingText = "";
@@ -15,7 +15,7 @@ let saveData = {
 };
 
 // =========================
-// LOAD / SAVE
+// SAVE SYSTEM
 // =========================
 
 function loadSave() {
@@ -33,12 +33,55 @@ function saveGame() {
 // =========================
 
 function updateStats() {
-    document.getElementById("wins").textContent = saveData.wins;
-    document.getElementById("messages").textContent = saveData.messages;
-    document.getElementById("streak").textContent = saveData.streak;
-    document.getElementById("bestStreak").textContent = saveData.bestStreak;
-    document.getElementById("learnedMessages").textContent = saveData.learnedMessages;
-    document.getElementById("knownWords").textContent = Object.keys(markov).length;
+    const set = (id, val) => {
+        const el = document.getElementById(id);
+        if (el) el.textContent = val;
+    };
+
+    set("wins", saveData.wins);
+    set("messages", saveData.messages);
+    set("streak", saveData.streak);
+    set("bestStreak", saveData.bestStreak);
+    set("learnedMessages", saveData.learnedMessages);
+    set("knownWords", Object.keys(markov).length);
+}
+
+// =========================
+// SAFE TEXT FILTERING
+// =========================
+
+function isCorrupt(text) {
+    if (!text || typeof text !== "string") return true;
+
+    const badPatterns = [
+        "<",
+        ">",
+        "data:image",
+        "base64",
+        "src=",
+        "alt=",
+        "{",
+        "}",
+        ";",
+        "#",
+        ":",
+        "margin",
+        "padding",
+        "font",
+        "color",
+        "display"
+    ];
+
+    return badPatterns.some(p => text.includes(p));
+}
+
+function cleanText(text) {
+    return text
+        .replace(/<[^>]*>/g, "")
+        .replace(/data:image[^ ]*/g, "")
+        .replace(/[{}#;:=]/g, "")
+        .replace(/\s+/g, " ")
+        .trim();
 }
 
 // =========================
@@ -47,51 +90,38 @@ function updateStats() {
 
 function addUserMessage(text) {
     const chat = document.getElementById("chat-log");
+    if (!chat) return;
+
     chat.innerHTML += `
         <div class="user-message">
             <span class="name">You:</span>
             ${text}
         </div>
     `;
+
     chat.scrollTop = chat.scrollHeight;
 }
 
 function addClankerMessage(text) {
-    if (!text || text.trim().length === 0) {
-        text = "clanker is silent...";
+    const chat = document.getElementById("chat-log");
+    if (!chat) return;
+
+    if (!text || isCorrupt(text)) {
+        text = "clanker encountered corrupted input...";
     }
 
-    const chat = document.getElementById("chat-log");
     chat.innerHTML += `
         <div class="clanker-message">
             <span class="name">Clanker:</span>
             ${text}
         </div>
     `;
+
     chat.scrollTop = chat.scrollHeight;
 }
 
 // =========================
-// CODE FILTER
-// =========================
-
-function looksLikeCode(text) {
-    return (
-        text.includes("{") ||
-        text.includes("}") ||
-        text.includes(";") ||
-        text.includes("#") ||
-        text.includes(":") ||
-        text.includes("margin") ||
-        text.includes("font") ||
-        text.includes("padding") ||
-        text.includes("color") ||
-        text.includes("display")
-    );
-}
-
-// =========================
-// MARKOV
+// MARKOV ENGINE
 // =========================
 
 function buildMarkov(text) {
@@ -100,30 +130,24 @@ function buildMarkov(text) {
     const words = text
         .toLowerCase()
         .split(/\s+/)
-        .filter(w => w.length > 1);
+        .map(w => w.trim())
+        .filter(w => w.length > 1 && !isCorrupt(w));
 
     for (let i = 0; i < words.length - 1; i++) {
-        const current = words[i];
+        const cur = words[i];
         const next = words[i + 1];
 
-        if (!markov[current]) {
-            markov[current] = [];
-        }
-
-        markov[current].push(next);
+        if (!markov[cur]) markov[cur] = [];
+        markov[cur].push(next);
     }
 
     updateStats();
 }
 
 function learnText(text) {
-    if (looksLikeCode(text)) return;
+    if (isCorrupt(text)) return;
 
-    const clean = text
-        .replace(/[{}#;:=]/g, "")
-        .replace(/\s+/g, " ")
-        .trim();
-
+    const clean = cleanText(text);
     if (clean.length < 2) return;
 
     trainingText += "\n" + clean;
@@ -135,43 +159,31 @@ function learnText(text) {
     saveGame();
 }
 
-// =========================
-// GENERATE SENTENCE
-// =========================
+function generateMarkovSentence(min = 5, max = 15) {
+    const keys = Object.keys(markov);
+    if (keys.length === 0) return "clanker is booting...";
 
-function generateMarkovSentence(minLength = 5, maxLength = 15) {
-    const words = Object.keys(markov);
+    const len = Math.floor(Math.random() * (max - min + 1)) + min;
 
-    if (words.length === 0) {
-        return "clanker is still booting...";
+    let current = keys[Math.floor(Math.random() * keys.length)];
+    const out = [current];
+
+    for (let i = 0; i < len; i++) {
+        const next = markov[current];
+        if (!next || !next.length) break;
+
+        current = next[Math.floor(Math.random() * next.length)];
+        out.push(current);
     }
 
-    const length =
-        Math.floor(Math.random() * (maxLength - minLength + 1)) + minLength;
-
-    let current = words[Math.floor(Math.random() * words.length)];
-    const result = [current];
-
-    for (let i = 0; i < length; i++) {
-        if (!markov[current]) break;
-
-        const nextWords = markov[current];
-        current = nextWords[Math.floor(Math.random() * nextWords.length)];
-
-        result.push(current);
-    }
-
-    let sentence = result.join(" ").trim();
-
-    if (sentence.length < 2) {
-        return "clanker is thinking...";
-    }
+    let sentence = out.join(" ").trim();
+    if (sentence.length < 2) return "clanker is thinking...";
 
     return sentence.charAt(0).toUpperCase() + sentence.slice(1);
 }
 
 // =========================
-// TARGETS
+// TARGET SYSTEM
 // =========================
 
 const subjects = [
@@ -207,23 +219,19 @@ const objects = [
     "a sandwich"
 ];
 
-function random(arr) {
+function pick(arr) {
     return arr[Math.floor(Math.random() * arr.length)];
 }
 
 function generateTarget() {
-    targetSentence =
-        random(subjects) +
-        " " +
-        random(verbs) +
-        " " +
-        random(objects);
+    targetSentence = `${pick(subjects)} ${pick(verbs)} ${pick(objects)}`;
 
-    document.getElementById("targetSentence").textContent = targetSentence;
+    const el = document.getElementById("targetSentence");
+    if (el) el.textContent = targetSentence;
 }
 
 // =========================
-// WIN
+// WIN SYSTEM
 // =========================
 
 function winGame() {
@@ -237,18 +245,22 @@ function winGame() {
     saveGame();
     updateStats();
 
-    document.getElementById("winMessages").textContent = saveData.messages;
-    document.getElementById("winModal").classList.remove("hidden");
+    const el = document.getElementById("winMessages");
+    if (el) el.textContent = saveData.messages;
+
+    const modal = document.getElementById("winModal");
+    if (modal) modal.classList.remove("hidden");
 }
 
 // =========================
-// SEND MESSAGE
+// INPUT SYSTEM
 // =========================
 
 function sendMessage() {
     const input = document.getElementById("messageInput");
-    const text = input.value.trim();
+    if (!input) return;
 
+    const text = input.value.trim();
     if (!text) return;
 
     addUserMessage(text);
@@ -257,19 +269,16 @@ function sendMessage() {
     saveData.messages++;
     updateStats();
 
-    const difficulty = document.getElementById("difficulty").value;
+    const difficulty = document.getElementById("difficulty")?.value || "normal";
 
-    let response;
-
-    if (difficulty === "easy") {
-        response = generateMarkovSentence(3, 8);
-    } else if (difficulty === "hard") {
-        response = generateMarkovSentence(8, 16);
-    } else if (difficulty === "nightmare") {
-        response = generateMarkovSentence(12, 25);
-    } else {
-        response = generateMarkovSentence(5, 12);
-    }
+    let response = generateMarkovSentence(
+        difficulty === "easy" ? 3 :
+        difficulty === "hard" ? 8 :
+        difficulty === "nightmare" ? 12 : 5,
+        difficulty === "easy" ? 8 :
+        difficulty === "hard" ? 16 :
+        difficulty === "nightmare" ? 25 : 12
+    );
 
     setTimeout(() => {
         addClankerMessage(response);
@@ -280,7 +289,7 @@ function sendMessage() {
         ) {
             winGame();
         }
-    }, 500);
+    }, 400);
 
     input.value = "";
     saveGame();
@@ -290,44 +299,41 @@ function sendMessage() {
 // BUTTONS
 // =========================
 
-document.getElementById("sendButton").addEventListener("click", sendMessage);
+document.getElementById("sendButton")?.addEventListener("click", sendMessage);
 
-document.getElementById("messageInput").addEventListener("keypress", e => {
+document.getElementById("messageInput")?.addEventListener("keydown", e => {
     if (e.key === "Enter") sendMessage();
 });
 
-document.getElementById("nextGameBtn").addEventListener("click", () => {
-    document.getElementById("winModal").classList.add("hidden");
+document.getElementById("nextGameBtn")?.addEventListener("click", () => {
+    document.getElementById("winModal")?.classList.add("hidden");
     generateTarget();
 });
 
-document.getElementById("saveBtn").addEventListener("click", saveGame);
-document.getElementById("newGameBtn").addEventListener("click", generateTarget);
+document.getElementById("saveBtn")?.addEventListener("click", saveGame);
 
-document.getElementById("resetBtn").addEventListener("click", () => {
-    if (confirm("Reset progress?")) {
+document.getElementById("newGameBtn")?.addEventListener("click", generateTarget);
+
+document.getElementById("resetBtn")?.addEventListener("click", () => {
+    if (confirm("Reset all progress?")) {
         localStorage.removeItem("clankerSave");
         location.reload();
     }
 });
 
 // =========================
-// LOAD TRAINING
+// TRAINING LOAD
 // =========================
 
 async function loadTraining() {
     try {
-        const response = await fetch("training.txt");
-        trainingText = await response.text();
+        const res = await fetch("training.txt");
+        trainingText = await res.text();
 
-        trainingText = trainingText
-            .replace(/[{}#;:=]/g, "")
-            .replace(/\s+/g, " ")
-            .trim();
+        trainingText = cleanText(trainingText);
 
         buildMarkov(trainingText);
-
-    } catch (err) {
+    } catch (e) {
         trainingText = `
 the refrigerator joined a jazz band
 the mailbox challenged gravity
@@ -347,11 +353,10 @@ the toaster invented a spaceship
 async function startGame() {
     loadSave();
     await loadTraining();
-
     generateTarget();
 
     addClankerMessage("Boot sequence complete.");
-    addClankerMessage("Awaiting human input.");
+    addClankerMessage("Awaiting input.");
 }
 
 startGame();
