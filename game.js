@@ -161,9 +161,35 @@ function buildMarkov(text) {
 
 function learnText(text) {
 
-    trainingText +=
-        "\n" +
-        text;
+    if (looksLikeCode(text)) return;
+
+    trainingText += "\n" + text;
+
+    buildMarkov(trainingText);
+
+    saveData.learnedMessages++;
+
+    updateStats();
+
+    saveGame();
+}
+
+    function looksLikeCode(text) {
+
+    return (
+        text.includes("{") ||
+        text.includes("}") ||
+        text.includes(";") ||
+        text.includes("#") ||
+        text.includes(":") ||
+        text.includes("margin") ||
+        text.includes("font") ||
+        text.includes("padding") ||
+        text.includes("color") ||
+        text.includes("display")
+    );
+
+}
 
     buildMarkov(
         trainingText
@@ -594,6 +620,12 @@ async function loadTraining() {
 
         trainingText =
             await response.text();
+
+        trainingText = trainingText
+    .replace(/[{};]/g, "")
+    .replace(/[#]/g, "")
+    .replace(/[:=]/g, "")
+    .replace(/\s+/g, " ");
 
         buildMarkov(
             trainingText
