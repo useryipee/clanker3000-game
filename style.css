@@ -1,0 +1,469 @@
+* {
+    margin: 0;
+    padding: 0;
+    box-sizing: border-box;
+}
+
+:root {
+    --bg: #0b0f14;
+    --panel: #151b23;
+    --panel2: #1b2430;
+    --green: #00ff88;
+    --green-dark: #00cc6a;
+    --blue: #58a6ff;
+    --red: #ff5f5f;
+    --text: #e6edf3;
+    --border: #263040;
+}
+
+body {
+    background: var(--bg);
+    color: var(--text);
+    font-family: Consolas, monospace;
+    min-height: 100vh;
+    overflow-x: hidden;
+}
+
+/* Background Glow */
+
+#background-glow {
+    position: fixed;
+    width: 100%;
+    height: 100%;
+    background:
+        radial-gradient(circle at center,
+        rgba(0,255,136,0.08),
+        transparent 60%);
+    pointer-events: none;
+    z-index: -1;
+}
+
+/* Main App */
+
+#app {
+    width: 95%;
+    max-width: 1500px;
+    margin: auto;
+    padding: 20px;
+}
+
+/* Header */
+
+header {
+    text-align: center;
+    margin-bottom: 25px;
+}
+
+header h1 {
+    font-size: 3rem;
+    color: var(--green);
+    text-shadow: 0 0 20px rgba(0,255,136,.4);
+}
+
+.subtitle {
+    color: #9ca3af;
+    margin-top: 10px;
+}
+
+/* Layout */
+
+#top-bar {
+    display: flex;
+    gap: 20px;
+    margin-bottom: 20px;
+}
+
+#main-area {
+    display: flex;
+    gap: 20px;
+}
+
+#chat-panel {
+    flex: 1;
+}
+
+#side-panel {
+    width: 320px;
+    display: flex;
+    flex-direction: column;
+    gap: 20px;
+}
+
+#footer-panel {
+    margin-top: 20px;
+}
+
+/* Panels */
+
+.panel {
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 18px;
+    box-shadow: 0 0 15px rgba(0,0,0,.3);
+}
+
+.panel h2 {
+    margin-bottom: 12px;
+    color: var(--green);
+}
+
+/* Target */
+
+#targetSentence {
+    font-size: 1.2rem;
+    color: white;
+    line-height: 1.5;
+    padding: 12px;
+    background: var(--panel2);
+    border-radius: 10px;
+}
+
+/* Chat */
+
+#chat-log {
+    height: 550px;
+    overflow-y: auto;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    border-radius: 15px;
+    padding: 15px;
+    margin-bottom: 15px;
+}
+
+#chat-log::-webkit-scrollbar {
+    width: 10px;
+}
+
+#chat-log::-webkit-scrollbar-thumb {
+    background: var(--green);
+    border-radius: 20px;
+}
+
+.user-message,
+.clanker-message {
+    padding: 10px;
+    margin-bottom: 10px;
+    border-radius: 10px;
+    word-wrap: break-word;
+}
+
+.user-message {
+    background: rgba(88,166,255,.15);
+    border-left: 4px solid var(--blue);
+}
+
+.clanker-message {
+    background: rgba(0,255,136,.12);
+    border-left: 4px solid var(--green);
+}
+
+.name {
+    font-weight: bold;
+}
+
+/* Input */
+
+#input-bar {
+    display: flex;
+    gap: 10px;
+}
+
+#messageInput {
+    flex: 1;
+    background: var(--panel);
+    border: 1px solid var(--border);
+    color: white;
+    padding: 14px;
+    border-radius: 10px;
+    font-size: 1rem;
+}
+
+#messageInput:focus {
+    outline: none;
+    border-color: var(--green);
+}
+
+/* Buttons */
+
+button {
+    background: var(--green);
+    color: black;
+    border: none;
+    padding: 12px 18px;
+    border-radius: 10px;
+    cursor: pointer;
+    font-weight: bold;
+    transition: .15s;
+}
+
+button:hover {
+    background: var(--green-dark);
+    transform: translateY(-2px);
+}
+
+button:active {
+    transform: translateY(1px);
+}
+
+#side-panel button {
+    width: 100%;
+    margin-bottom: 10px;
+}
+
+/* Stats */
+
+.stats p {
+    margin-bottom: 8px;
+}
+
+/* Achievements */
+
+#achievementList {
+    display: flex;
+    flex-direction: column;
+    gap: 10px;
+}
+
+.achievement {
+    padding: 10px;
+    border-radius: 10px;
+}
+
+.achievement.locked {
+    background: #2d333b;
+    color: #888;
+}
+
+.achievement.unlocked {
+    background: rgba(0,255,136,.15);
+    color: var(--green);
+    border: 1px solid var(--green);
+}
+
+/* Difficulty */
+
+select {
+    background: var(--panel2);
+    color: white;
+    border: 1px solid var(--border);
+    padding: 8px;
+    border-radius: 8px;
+}
+
+/* Win Modal */
+
+#winModal {
+    position: fixed;
+    inset: 0;
+    background: rgba(0,0,0,.75);
+    display: flex;
+    justify-content: center;
+    align-items: center;
+}
+
+.hidden {
+    display: none !important;
+}
+
+.modal-content {
+    background: var(--panel);
+    border: 2px solid var(--green);
+    border-radius: 20px;
+    padding: 30px;
+    width: 90%;
+    max-width: 500px;
+    text-align: center;
+    box-shadow: 0 0 25px rgba(0,255,136,.25);
+}
+
+.modal-content h1 {
+    color: var(--green);
+    margin-bottom: 15px;
+}
+
+.modal-content p {
+    margin-bottom: 10px;
+}
+
+/* Mobile */
+
+@media (max-width: 1000px) {
+
+    #main-area {
+        flex-direction: column;
+    }
+
+    #side-panel {
+        width: 100%;
+    }
+
+    #top-bar {
+        flex-direction: column;
+    }
+
+    header h1 {
+        font-size: 2rem;
+    }
+
+    #chat-log {
+        height: 400px;
+    }
+}
+
+/* =========================
+   CLANKER GLITCH EFFECTS
+========================= */
+
+@keyframes glitchShake {
+    0% { transform: translate(0px,0px); }
+    20% { transform: translate(-2px,2px); }
+    40% { transform: translate(2px,-2px); }
+    60% { transform: translate(-2px,0px); }
+    80% { transform: translate(2px,2px); }
+    100% { transform: translate(0px,0px); }
+}
+
+.glitch {
+    animation: glitchShake 0.15s infinite;
+    text-shadow:
+        -2px 0 #ff0000,
+        2px 0 #00ffff;
+}
+
+@keyframes screenFlicker {
+
+    0% { opacity: 1; }
+    5% { opacity: .7; }
+    10% { opacity: 1; }
+    15% { opacity: .5; }
+    20% { opacity: 1; }
+
+    100% { opacity: 1; }
+
+}
+
+.flicker {
+    animation: screenFlicker .4s;
+}
+
+.glitch-message {
+    color: #ff4444;
+    font-weight: bold;
+    text-shadow: 0 0 10px red;
+}
+
+#glitchOverlay {
+
+    position: fixed;
+    inset: 0;
+
+    background:
+    repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,.02) 3px
+    );
+
+    pointer-events: none;
+
+    opacity: 0;
+
+    z-index: 9999;
+
+}
+
+.glitch-overlay-active {
+    opacity: 1 !important;
+}
+
+@keyframes pulseRed {
+
+    0% { box-shadow: 0 0 0px red; }
+    50% { box-shadow: 0 0 40px red; }
+    100% { box-shadow: 0 0 0px red; }
+
+}
+
+.corrupted {
+    animation: pulseRed 2s infinite;
+}
+/* =========================
+   CLANKER GLITCH EFFECTS
+========================= */
+
+@keyframes glitchShake {
+    0% { transform: translate(0px,0px); }
+    20% { transform: translate(-2px,2px); }
+    40% { transform: translate(2px,-2px); }
+    60% { transform: translate(-2px,0px); }
+    80% { transform: translate(2px,2px); }
+    100% { transform: translate(0px,0px); }
+}
+
+.glitch {
+    animation: glitchShake 0.15s infinite;
+    text-shadow:
+        -2px 0 #ff0000,
+        2px 0 #00ffff;
+}
+
+@keyframes screenFlicker {
+
+    0% { opacity: 1; }
+    5% { opacity: .7; }
+    10% { opacity: 1; }
+    15% { opacity: .5; }
+    20% { opacity: 1; }
+
+    100% { opacity: 1; }
+
+}
+
+.flicker {
+    animation: screenFlicker .4s;
+}
+
+.glitch-message {
+    color: #ff4444;
+    font-weight: bold;
+    text-shadow: 0 0 10px red;
+}
+
+#glitchOverlay {
+
+    position: fixed;
+    inset: 0;
+
+    background:
+    repeating-linear-gradient(
+        0deg,
+        transparent,
+        transparent 2px,
+        rgba(255,255,255,.02) 3px
+    );
+
+    pointer-events: none;
+
+    opacity: 0;
+
+    z-index: 9999;
+
+}
+
+.glitch-overlay-active {
+    opacity: 1 !important;
+}
+
+@keyframes pulseRed {
+
+    0% { box-shadow: 0 0 0px red; }
+    50% { box-shadow: 0 0 40px red; }
+    100% { box-shadow: 0 0 0px red; }
+
+}
+
+.corrupted {
+    animation: pulseRed 2s infinite;
+}
