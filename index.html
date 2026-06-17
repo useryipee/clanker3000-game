@@ -6,67 +6,50 @@
     <title>Clanker 3000</title>
     <link rel="stylesheet" href="style.css">
 </head>
-
 <body>
-
 <div id="background-glow"></div>
 <div id="glitchOverlay"></div>
-
 <div id="app">
-
     <!-- HEADER -->
     <header>
         <h1>CLANKER 3000 - THE GAME</h1>
         <div class="subtitle">Make Clanker say the target sentence</div>
     </header>
-
     <!-- TOP BAR -->
     <div id="top-bar">
-
         <div class="panel" style="flex:1;">
             <h2>🎯 Target Sentence</h2>
             <div id="targetSentence">Loading...</div>
         </div>
-
         <div class="panel" style="width:250px;">
             <h2>⚙ Difficulty</h2>
             <select id="difficulty">
-                <option value="easy">Easy</option>
-                <option value="normal" selected>Normal</option>
-                <option value="hard">Hard</option>
-                <option value="nightmare">Nightmare</option>
+                <option value="easy">Easy (60% match)</option>
+                <option value="normal" selected>Normal (80% match)</option>
+                <option value="hard">Hard (95% match)</option>
+                <option value="nightmare">Nightmare (exact)</option>
             </select>
         </div>
-
     </div>
-
     <!-- MAIN AREA -->
     <div id="main-area">
-
         <!-- CHAT -->
         <div id="chat-panel">
-
             <div id="chat-log"></div>
-
             <div id="input-bar">
                 <input
                     id="messageInput"
                     type="text"
-                    placeholder="Type message to Clanker..."
+                    placeholder="Type words to steer Clanker..."
                     autocomplete="off"
                 />
-
                 <button id="sendButton">Send</button>
             </div>
-
         </div>
-
         <!-- SIDE PANEL -->
         <div id="side-panel">
-
             <div class="panel">
                 <h2>📊 Stats</h2>
-
                 <div class="stats">
                     <p>Wins: <span id="wins">0</span></p>
                     <p>Messages: <span id="messages">0</span></p>
@@ -76,49 +59,36 @@
                     <p>Words: <span id="knownWords">0</span></p>
                 </div>
             </div>
-
             <div class="panel">
                 <h2>🎮 Controls</h2>
-
                 <button id="newGameBtn">New Target</button>
                 <button id="saveBtn">Save Game</button>
                 <button id="resetBtn">Reset</button>
             </div>
-
+            <div class="panel">
+                <h2>💡 Tips</h2>
+                <p style="font-size:0.8em;opacity:0.7;">Type words from the target sentence. Clanker learns from everything you say and tries to chain from your last known word.</p>
+            </div>
         </div>
-
     </div>
-
     <!-- FOOTER -->
     <div id="footer-panel">
-
         <div class="panel">
             <h2>🧠 Clanker Status</h2>
             <p>System online. Learning from human input.</p>
         </div>
-
     </div>
-
 </div>
-
 <!-- WIN MODAL -->
 <div id="winModal" class="hidden">
-
     <div class="modal-content">
-
         <h1>YOU WON</h1>
-
-        <p>Clanker successfully reproduced the target sentence.</p>
-
+        <p>Clanker reproduced the target sentence.</p>
+        <p style="font-size:0.85em;opacity:0.8;">Clanker said: <span id="winGotSentence"></span></p>
         <p>Messages sent: <span id="winMessages">0</span></p>
-
         <button id="nextGameBtn">Next Target</button>
-
     </div>
-
 </div>
-
 <script src="game.js"></script>
-
 </body>
 </html>
