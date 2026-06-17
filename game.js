@@ -3,7 +3,8 @@
 // =========================
 
 let trainingText = "";
-let markov = {};
+let markov = {};       // bigram keys: "word1 word2" -> [next words]
+let markovMono = {};   // monogram keys: "word" -> [next words] (fallback)
 let targetSentence = "";
 
 let saveData = {
@@ -54,22 +55,9 @@ function isCorrupt(text) {
     if (!text || typeof text !== "string") return true;
 
     const badPatterns = [
-        "<",
-        ">",
-        "data:image",
-        "base64",
-        "src=",
-        "alt=",
-        "{",
-        "}",
-        ";",
-        "#",
-        ":",
-        "margin",
-        "padding",
-        "font",
-        "color",
-        "display"
+        "<", ">", "data:image", "base64", "src=", "alt=",
+        "{", "}", ";", "#", ":", "margin", "padding",
+        "font", "color", "display"
     ];
 
     return badPatterns.some(p => text.includes(p));
@@ -92,13 +80,10 @@ function addUserMessage(text) {
     const chat = document.getElementById("chat-log");
     if (!chat) return;
 
-    chat.innerHTML += `
-        <div class="user-message">
-            <span class="name">You:</span>
-            ${text}
-        </div>
-    `;
-
+    const div = document.createElement("div");
+    div.className = "user-message";
+    div.innerHTML = `<span class="name">You:</span> ${text}`;
+    chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
 
@@ -110,35 +95,41 @@ function addClankerMessage(text) {
         text = "clanker encountered corrupted input...";
     }
 
-    chat.innerHTML += `
-        <div class="clanker-message">
-            <span class="name">Clanker:</span>
-            ${text}
-        </div>
-    `;
-
+    const div = document.createElement("div");
+    div.className = "clanker-message";
+    div.innerHTML = `<span class="name">Clanker:</span> ${text}`;
+    chat.appendChild(div);
     chat.scrollTop = chat.scrollHeight;
 }
 
 // =========================
-// MARKOV ENGINE
+// MARKOV ENGINE (ORDER 2)
 // =========================
 
 function buildMarkov(text) {
     markov = {};
+    markovMono = {};
 
     const words = text
         .toLowerCase()
         .split(/\s+/)
-        .map(w => w.trim())
-        .filter(w => w.length > 1 && !isCorrupt(w));
+        .map(w => w.replace(/[^a-z0-9']/g, "").trim())
+        .filter(w => w.length > 0 && !isCorrupt(w));
 
+    // Order-2 bigram chain
+    for (let i = 0; i < words.length - 2; i++) {
+        const key = words[i] + " " + words[i + 1];
+        const next = words[i + 2];
+        if (!markov[key]) markov[key] = [];
+        markov[key].push(next);
+    }
+
+    // Order-1 fallback chain
     for (let i = 0; i < words.length - 1; i++) {
-        const cur = words[i];
+        const key = words[i];
         const next = words[i + 1];
-
-        if (!markov[cur]) markov[cur] = [];
-        markov[cur].push(next);
+        if (!markovMono[key]) markovMono[key] = [];
+        markovMono[key].push(next);
     }
 
     updateStats();
@@ -159,21 +150,61 @@ function learnText(text) {
     saveGame();
 }
 
-function generateMarkovSentence(min = 5, max = 15) {
+// Pick a starting bigram that contains the seed word (if possible)
+function findSeedKey(seedWord) {
+    if (!seedWord) return null;
+    const lower = seedWord.toLowerCase().replace(/[^a-z0-9']/g, "");
+    if (!lower) return null;
+
+    // Find all bigram keys that start with or contain the seed word
+    const matches = Object.keys(markov).filter(k => {
+        const parts = k.split(" ");
+        return parts[0] === lower || parts[1] === lower;
+    });
+
+    if (matches.length === 0) {
+        // Fall back to monogram
+        return markovMono[lower] ? lower : null;
+    }
+
+    return matches[Math.floor(Math.random() * matches.length)];
+}
+
+function generateMarkovSentence(seedWord = null, min = 5, max = 15) {
     const keys = Object.keys(markov);
     if (keys.length === 0) return "clanker is booting...";
 
     const len = Math.floor(Math.random() * (max - min + 1)) + min;
 
-    let current = keys[Math.floor(Math.random() * keys.length)];
-    const out = [current];
+    // Try to start from seed word
+    let startKey = null;
+    if (seedWord) {
+        startKey = findSeedKey(seedWord);
+    }
+
+    // Fall back to random bigram key
+    if (!startKey || !markov[startKey]) {
+        startKey = keys[Math.floor(Math.random() * keys.length)];
+    }
+
+    // Build output from bigram chain
+    let parts = startKey.split(" ");
+    const out = [...parts];
+    let current = startKey;
 
     for (let i = 0; i < len; i++) {
-        const next = markov[current];
-        if (!next || !next.length) break;
+        const nextOptions = markov[current];
+        if (!nextOptions || !nextOptions.length) break;
 
-        current = next[Math.floor(Math.random() * next.length)];
-        out.push(current);
+        const nextWord = nextOptions[Math.floor(Math.random() * nextOptions.length)];
+        out.push(nextWord);
+
+        // Advance the bigram key
+        const keyParts = current.split(" ");
+        current = keyParts[1] + " " + nextWord;
+
+        // If new key doesn't exist, stop
+        if (!markov[current]) break;
     }
 
     let sentence = out.join(" ").trim();
@@ -183,40 +214,52 @@ function generateMarkovSentence(min = 5, max = 15) {
 }
 
 // =========================
+// WIN DETECTION (FUZZY)
+// =========================
+
+// Returns 0.0 - 1.0 similarity between two strings (word overlap)
+function sentenceSimilarity(a, b) {
+    const wordsA = new Set(a.toLowerCase().split(/\s+/));
+    const wordsB = new Set(b.toLowerCase().split(/\s+/));
+
+    let overlap = 0;
+    for (const w of wordsA) {
+        if (wordsB.has(w)) overlap++;
+    }
+
+    return overlap / Math.max(wordsA.size, wordsB.size);
+}
+
+function getWinThreshold() {
+    const difficulty = document.getElementById("difficulty")?.value || "normal";
+    return {
+        easy:      0.6,
+        normal:    0.8,
+        hard:      0.95,
+        nightmare: 1.0   // exact match only
+    }[difficulty] ?? 0.8;
+}
+
+// =========================
 // TARGET SYSTEM
 // =========================
 
 const subjects = [
-    "the refrigerator",
-    "the mailbox",
-    "a wizard",
-    "a penguin",
-    "the potato",
-    "the banana",
-    "a robot",
-    "the toaster"
+    "the refrigerator", "the mailbox", "a wizard", "a penguin",
+    "the potato", "the banana", "a robot", "the toaster",
+    "the umbrella", "a pigeon", "the calculator", "a sock"
 ];
 
 const verbs = [
-    "joined",
-    "challenged",
-    "stole",
-    "invented",
-    "destroyed",
-    "found",
-    "ordered",
-    "befriended"
+    "joined", "challenged", "stole", "invented",
+    "destroyed", "found", "ordered", "befriended",
+    "launched", "defeated", "borrowed", "assembled"
 ];
 
 const objects = [
-    "a jazz band",
-    "the moon",
-    "gravity",
-    "a toaster",
-    "pineapple socks",
-    "an alien",
-    "a spaceship",
-    "a sandwich"
+    "a jazz band", "the moon", "gravity", "a toaster",
+    "pineapple socks", "an alien", "a spaceship", "a sandwich",
+    "the entire ocean", "a bucket of fog", "an invisible hat", "three paperclips"
 ];
 
 function pick(arr) {
@@ -228,13 +271,16 @@ function generateTarget() {
 
     const el = document.getElementById("targetSentence");
     if (el) el.textContent = targetSentence;
+
+    // Also feed target words into the chain so they're reachable
+    learnText(targetSentence);
 }
 
 // =========================
 // WIN SYSTEM
 // =========================
 
-function winGame() {
+function winGame(response) {
     saveData.wins++;
     saveData.streak++;
 
@@ -247,6 +293,9 @@ function winGame() {
 
     const el = document.getElementById("winMessages");
     if (el) el.textContent = saveData.messages;
+
+    const gotEl = document.getElementById("winGotSentence");
+    if (gotEl) gotEl.textContent = `"${response}"`;
 
     const modal = document.getElementById("winModal");
     if (modal) modal.classList.remove("hidden");
@@ -271,23 +320,28 @@ function sendMessage() {
 
     const difficulty = document.getElementById("difficulty")?.value || "normal";
 
-    let response = generateMarkovSentence(
-        difficulty === "easy" ? 3 :
-        difficulty === "hard" ? 8 :
-        difficulty === "nightmare" ? 12 : 5,
-        difficulty === "easy" ? 8 :
-        difficulty === "hard" ? 16 :
-        difficulty === "nightmare" ? 25 : 12
-    );
+    // Extract seed word: last word the user typed that exists in chain
+    const userWords = text.toLowerCase().split(/\s+/);
+    const knownSeed = userWords.reverse().find(w => markovMono[w]) || userWords[0];
+
+    const lengths = {
+        easy:      [3, 8],
+        normal:    [5, 12],
+        hard:      [8, 16],
+        nightmare: [12, 25]
+    };
+    const [minLen, maxLen] = lengths[difficulty] ?? [5, 12];
+
+    let response = generateMarkovSentence(knownSeed, minLen, maxLen);
 
     setTimeout(() => {
         addClankerMessage(response);
 
-        if (
-            response.toLowerCase().trim() ===
-            targetSentence.toLowerCase().trim()
-        ) {
-            winGame();
+        const similarity = sentenceSimilarity(response, targetSentence);
+        const threshold = getWinThreshold();
+
+        if (similarity >= threshold) {
+            winGame(response);
         }
     }, 400);
 
@@ -312,7 +366,15 @@ document.getElementById("nextGameBtn")?.addEventListener("click", () => {
 
 document.getElementById("saveBtn")?.addEventListener("click", saveGame);
 
-document.getElementById("newGameBtn")?.addEventListener("click", generateTarget);
+document.getElementById("newGameBtn")?.addEventListener("click", () => {
+    saveData.streak = 0;
+    saveGame();
+    updateStats();
+    generateTarget();
+    const chat = document.getElementById("chat-log");
+    if (chat) chat.innerHTML = "";
+    addClankerMessage("New target loaded. Awaiting input.");
+});
 
 document.getElementById("resetBtn")?.addEventListener("click", () => {
     if (confirm("Reset all progress?")) {
@@ -322,26 +384,46 @@ document.getElementById("resetBtn")?.addEventListener("click", () => {
 });
 
 // =========================
+// TRAINING CORPUS
+// =========================
+
+// Fallback corpus — enough variety for the bigram chain to work
+// Replace training.txt with any plain text (novels, scripts, song lyrics)
+// for a more interesting/personality-driven clanker
+const FALLBACK_CORPUS = `
+the refrigerator joined a jazz band after midnight
+the mailbox challenged gravity and lost the argument
+a wizard ordered pineapple socks from an alien merchant
+the moon stole a sandwich from the toaster's best friend
+the toaster invented a spaceship made of spare parts
+a penguin found the entire ocean inside a bucket of fog
+the banana destroyed gravity with three paperclips and a sock
+the calculator befriended a pigeon near the invisible hat
+a robot assembled the moon from pineapple socks and fog
+the umbrella launched a jazz band into outer space tonight
+the potato defeated an alien who borrowed a spaceship yesterday
+a sock challenged the refrigerator and found an invisible hat
+the wizard joined the penguin who invented a jazz band
+the mailbox stole three paperclips from a very confused robot
+a pigeon ordered the entire ocean delivered by the calculator
+the toaster befriended a penguin who challenged the moon
+a banana launched gravity into a spaceship full of socks
+the robot found pineapple socks near the invisible jazz band
+`.trim();
+
+// =========================
 // TRAINING LOAD
 // =========================
 
 async function loadTraining() {
     try {
         const res = await fetch("training.txt");
-        trainingText = await res.text();
-
-        trainingText = cleanText(trainingText);
-
+        if (!res.ok) throw new Error("no training.txt");
+        const raw = await res.text();
+        trainingText = cleanText(raw);
         buildMarkov(trainingText);
     } catch (e) {
-        trainingText = `
-the refrigerator joined a jazz band
-the mailbox challenged gravity
-a wizard ordered pineapple socks
-the moon stole a sandwich
-the toaster invented a spaceship
-        `;
-
+        trainingText = FALLBACK_CORPUS;
         buildMarkov(trainingText);
     }
 }
